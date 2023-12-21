@@ -3,6 +3,7 @@
 env/
 tests/__pycache__
 .idea/
+demo.ipynb
 
 
 # Byte-compiled / optimized / DLL files
