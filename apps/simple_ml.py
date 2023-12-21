@@ -10,8 +10,8 @@ sys.path.append("python/")
 import needle as ndl
 
 
-def parse_mnist(image_filesname, label_filename):
-    """Read an images and labels file in MNIST format.  See this page:
+def parse_mnist(image_filename, label_filename):
+    """ Read an images and labels file in MNIST format.  See this page:
     http://yann.lecun.com/exdb/mnist/ for a description of the file format.
 
     Args:
@@ -20,21 +20,36 @@ def parse_mnist(image_filesname, label_filename):
 
     Returns:
         Tuple (X,y):
-            X (numpy.ndarray[np.float32]): 2D numpy array containing the loaded
-                data.  The dimensionality of the data should be
-                (num_examples x input_dim) where 'input_dim' is the full
-                dimension of the data, e.g., since MNIST images are 28x28, it
-                will be 784.  Values should be of type np.float32, and the data
-                should be normalized to have a minimum value of 0.0 and a
-                maximum value of 1.0.
+            X (numpy.ndarray[np.float32]): 2D numpy array containing the loaded 
+                data.  The dimensionality of the data should be 
+                (num_examples x input_dim) where 'input_dim' is the full 
+                dimension of the data, e.g., since MNIST images are 28x28, it 
+                will be 784.  Values should be of type np.float32, and the data 
+                should be normalized to have a minimum value of 0.0 and a 
+                maximum value of 1.0 (i.e., scale original values of 0 to 0.0 
+                and 255 to 1.0).
 
-            y (numpy.ndarray[dypte=np.int8]): 1D numpy array containing the
-                labels of the examples.  Values should be of type np.int8 and
+            y (numpy.ndarray[dtype=np.uint8]): 1D numpy array containing the
+                labels of the examples.  Values should be of type np.uint8 and
                 for MNIST will contain the values 0-9.
     """
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    ### BEGIN YOUR CODE
+    with gzip.open(image_filename, 'rb') as image_file:
+        image_data = image_file.read()
+        num_images = int.from_bytes(image_data[4:8])
+        image_array = np.frombuffer(image_data[16:], dtype=np.uint8)
+        image_array = image_array.reshape(num_images, -1)
+        image_array = image_array.astype(np.float32)
+        min_val = image_array.min()
+        max_val = image_array.max()
+        image_array = (image_array - min_val) / (max_val - min_val)
+
+    with gzip.open(label_filename, 'rb') as label_file:
+        label_data = label_file.read()
+        label_array = np.frombuffer(label_data[8:], dtype=np.uint8)
+
+    return image_array, label_array
+    ### END YOUR CODE
 
 
 def softmax_loss(Z, y_one_hot):
@@ -54,7 +69,9 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    log_sum_exp = ndl.log(ndl.summation(ndl.exp(Z), axes=(1,)))
+    z_y = ndl.summation(Z * y_one_hot, axes=(1,))
+    return ndl.summation(log_sum_exp - z_y) / Z.shape[0]
     ### END YOUR SOLUTION
 
 
@@ -83,7 +100,28 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    index = 0
+    while index < X.shape[0]:
+        X_batch = X[index:index+batch, :]
+        y_batch = y[index:index+batch]
+        index += batch
+        m = X_batch.shape[0]
+
+        X_batch = ndl.Tensor(X_batch)
+        y_batch = ndl.Tensor(np.eye(W2.shape[1])[y_batch])
+
+        Z = ndl.matmul(ndl.relu(ndl.matmul(X_batch, W1)), W2)
+        loss = softmax_loss(Z, y_batch)
+        loss.backward()
+
+        W1_grad = W1.grad.numpy()
+        W2_grad = W2.grad.numpy()
+        W1 = ndl.Tensor(W1.cached_data - lr * W1_grad)
+        W2 = ndl.Tensor(W2.cached_data - lr * W2_grad)
+
+    return W1, W2
+
+
     ### END YOUR SOLUTION
 
 
