@@ -25,8 +25,10 @@ New tensors are created automatically while doing operations. Inputs of each ten
 The final tensor is loss.
 
 ### Backward
-1. Find_topo_sort: get an ordered list of nodes (tensors).
-2. Use algorithm in the lecture to compute gradients and store them in tensors in the graph.
+1. loss.backward()
+2. compute_gradient_of_variables()
+3. Find_topo_sort: get an ordered list of nodes (tensors).
+4. Use algorithm in the lecture to compute gradients and store them in tensors in the graph.
 
 ### Questions
 Why is the computational graph just used for one time? Because, for each batch, new data `x` is used. A new computational graph is created based on the `x` and parameters.
